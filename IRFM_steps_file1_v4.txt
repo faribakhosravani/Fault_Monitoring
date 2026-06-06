@@ -1,0 +1,142 @@
+1- Install Linux, preferably UBUNTU
+2- install gvim in linux
+3- install miniconda:
+    goto: https://docs.anaconda.com/miniconda/miniconda-install/
+    click: Linux Installer
+    click: Download the .sh installer.
+    goto Linux table and click "Miniconda3 Linux 64-bit"
+    Now you have "Miniconda3-latest-Linux-x86_64.sh" in Download directory
+    In Download directory write the following command and install miniconda:
+        bash Miniconda3-latest-Linux-x86_64.sh
+
+4- Install pygmt in miniconda:
+    open a new terminal and you should have e.g. :
+        (base) xxx@xxxxx :~/Download
+    where (base) shows that you are in base of miniconda
+    follow https://www.pygmt.org/dev/install.html
+    click: conda tab
+    go to middle of page where you have:
+        Installing GMT and other dependencies
+            follow the steps as mentioned and I have repeated here:
+    In a terminal write:
+        conda config --prepend channels conda-forge
+        (be patiant for the following command!!)
+        conda create --name pygmt python=3.12 numpy pandas xarray netcdf4 packaging gmt
+        conda activate pygmt
+        conda install pygmt
+5- install ipython:
+    In a terminal write:
+        conda activate pygmt
+        conda install -c conda-forge ipython
+        
+6- test pygmt installation
+        further down the same page you see the following, follow steps:
+            Testing your install
+            but before that you can do the following steps to run the mentioned commands in 
+            ipython in a new terminal:
+                conda activate pygmt
+                ipython
+            then in ipython environment you can write the followings as mentioned in testing the install
+            ...
+            ...
+            you should see a map of the earth with PyGMT written on that
+            
+
+
+=========================================== SET 2 =============================================
+
+7- make sure you have the following ubuntu programs are installed, e.g. at command line write "which wget" :
+
+	wget
+	curl
+	sed
+
+8- create ~/bin directory if does not exist:
+
+	mkdir $HOME/bin
+
+9- copy update_irsc_database.sh to ~/bin directory:
+	
+	cp update_irsc_database.sh $HOME/bin
+
+10- make the irsc shell script executable:
+
+	chmod +x $HOME/bin/update_irsc_database.sh
+
+11- create work directory
+
+	mkdir -p $HOME/work/work1
+
+12- go to work1 directory:
+
+	cd $HOME/work/work1
+
+13- from work1 directory run the irsc script:
+
+	update_irsc_database.sh
+
+14- send me errors that you will face. It takes several hours to complete the code,
+	it will update the file $HOME/GMTdata/IRSN/IRSN_TEH_IRN.txt
+	you can check and see if new lines are written by running in another terminal:
+
+	wc  $HOME/GMTdata/IRSN/IRSN_TEH_IRN.txt
+
+=========================================== SET 3 =============================================
+
+15- Carefully add the following line at the bottom of "$HOME/.bashrc" through the sub-steps
+
+	15.1- gvim $HOME/.bashrc
+	15.2- add the following line at the bottom of .bashrc and save
+		conda activate pygmt
+	15.3- while the .bashrc file is still open, try to oprn another terminal, it should start with (pygmt)	      15.3- if there was some error copy paste it for me and remove the line and close .bashrc
+	15.4- otherwise save and close .bashrc
+
+
+
+16- make sure that you have installed the following packages in miniconda pygmt
+
+	 subprocess
+	 re
+	 requests
+	 io
+	 os
+	 sys
+	 shutil
+	 obspy 
+
+	For example:
+		conda install -c conda-forge obspy
+
+17- There are 3 .sh files that should be treated as in the case of update_irsc_database.sh,
+    steps 9 to 13 above. The differences are that they create a seperate folder and file inside them.
+    the folders that will be created are ~/GMTdata/ISC, ~/GMTdata/USGS, ~/KOERI
+
+ 	update_koeri_database.sh
+	update_isc_database.sh   
+	update_usgs_database.sh
+
+18- copy update_iiees.py to ~/bin directory
+	cp  update_iiees.py  ~/bin
+
+18- try to run it, like below, and send back the errors 
+
+	python3 ~/bin/ update_iiees.py
+
+
+=========================================== SET 4 =============================================
+
+
+19- copy "update_irsc_database.sh" to ~/bin directory and make it executable
+
+	cp update_irsc_database.sh  ~/bin
+	chmod +x  ~/bin/update_irsc_database.sh
+
+20- run the script from working directory
+	
+	cd ~ /work/work1
+	update_irsc_database.sh
+
+21- It takes time, after finishing you can run the python script with the problem
+
+	python3 ~/bin/ update_iiees.py
+	
