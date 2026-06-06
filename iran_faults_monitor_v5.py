@@ -384,7 +384,7 @@ def update_iiees_catalog(iiees_db_file=None):
 
     else:
         print(f"\t ... No link for file was found at {UTCDateTime.now()}")
-#####################################################################
+        
 #####################################################################
 def get_polygon(lons=None,
                 lats=None, 
@@ -588,7 +588,7 @@ def concat_usgs_irsc_iiees():
 def assign_base_fault_dfs():
 
     global tdf
-
+    
     for cdb in [ref_eq_df]: 
         
         for cbase_fault in base_faults:
@@ -619,6 +619,11 @@ def assign_base_fault_dfs():
                             length=["w"],
                             unit=True 
                             )
+                    # for new pygmt versions the project converts datetime to
+                    # seconds, therefore we convert them from timestamp.
+                    convertime_dt = [datetime.datetime.fromtimestamp(x) for x in segdf[4]]
+                    segdf[4]=convertime_dt 
+
                     segdf[5]=segdf[5]+cumul_segs_length
                     # fix for length
                     tdf = pd.concat([tdf,segdf], ignore_index=True)
@@ -642,6 +647,7 @@ def assign_base_fault_dfs():
                 cbase_fault.catalog_df = tdf
                 cbase_fault.last_event_datetime = \
                     pd.to_datetime( tdf.iloc[-1][4])
+
 
 
 #####################################################################
@@ -769,10 +775,6 @@ def plot_monitor_maps ():
 #####################################################################
 def get_db_times (xtime=None):
 
-    #print("I- min(xtime): ", min(xtime) )
-    #print("II- : catalog.irsc_end: ", catalog.irsc_end )
-    #print("III- : catalog.irsc_start: ", catalog.irsc_start  )
-    #print("IV- : catalog.usgs_start: ", catalog.usgs_start )
 
     if min(xtime) >= catalog.irsc_end:
         t_iiees= min(xtime)
@@ -850,14 +852,12 @@ def plot_time_profile(cbase_fault=None):
     data.iloc[:,4]=[pd.Timestamp(v) for v in data[4]]
     kink_list = cbase_fault.seg_length[:-1]
 
-    #cbarriers=[]
-    #for i in range(len(cbase_fault.barriers)):
-    #    cbarriers.append(cbase_fault.barriers[i].name)
 
     xt=data[4]
     t_usgs, t_irsc, t_iiees = get_db_times (xtime=xt)
 
     tw_start_TS, tw_legend_TS, tw_start, tw_title = get_time_wondows()
+
 
     y_legend = cbase_fault.total_length * .95
     lat_legend = [y_legend for n in range(len(mag_legend))]
@@ -904,16 +904,25 @@ def plot_time_profile(cbase_fault=None):
             
             # mark kink lines
             for cykink in kink_list:
-                xseg=region[0:2]
+                # to convert to datetimr
+                if j == 0:
+                    xseg=[ datetime.datetime.fromisoformat(t1) for t1 in region[0:2] ]
+                else:
+                    xseg=region[0:2]
                 yseg=[cykink for x in xseg ]
+                
                 fig.plot(x=xseg, 
                          y=yseg, 
                          pen=".1p,yellow"
                         )
 
-
             # write section names along the left axis
-            fig.text(x=region[0], 
+            if j ==0:
+                xlbl=datetime.datetime.fromisoformat(region[0]) 
+            else:
+                xlbl=region[0]
+
+            fig.text(x=xlbl, 
                      y=0, 
                      text= cbase_fault.beg_str, 
                      font="11p,NewCenturySchlbk-Bold,blue",
@@ -925,7 +934,7 @@ def plot_time_profile(cbase_fault=None):
                      no_clip=True,
                      offset="-0.70c/0c")
 
-            fig.text(x=region[0], 
+            fig.text(x=xlbl, 
                      y=cbase_fault.total_length, 
                      text= cbase_fault.end_str, 
                      font="11p,NewCenturySchlbk-Bold,blue",
@@ -1049,7 +1058,6 @@ def plot_time_profile(cbase_fault=None):
                     cdatetime= max(tw_start[k],cbase_fault.surface_ruptures[i].datetime)
                     if type(cdatetime) == UTCDateTime:
                         cdatetime = cdatetime.datetime
-                        #print("======cdatetime========:",cdatetime)
                     xb = [cdatetime] * len(yb)
                 else:
                     xb =[cbase_fault.surface_ruptures[i].evdep] * len(yb)
@@ -1108,11 +1116,15 @@ def plot_plan_maps(cbase_fault=None,
             image_resolution ="30s"
             print("\t ... Change in grid resolution to 30s.")
             tmp_local_grid = pygmt.grdsample(grid=tmp_local_grid, 
-                                             spacing=["30+s","30+s"])
+                                             spacing=["30+s","30+s"],
+                                             verbose=False
+                                             )
         elif 64 < area_deg :
             print("\t ... Change in grid resolution to 1m.")
             tmp_local_grid = pygmt.grdsample(grid=tmp_local_grid, 
-                                             spacing=["1+m","1+m"])
+                                             spacing=["1+m","1+m"],
+                                             verbose=False
+                                             )
 
 
     # find surface ruptures that fall in the region            
@@ -1148,6 +1160,7 @@ def plot_plan_maps(cbase_fault=None,
             data = cbase_fault.catalog_df[[0,1,2,3,4]]
             data.iloc[:,4]=[pd.Timestamp(v) for v in data[4]]
             num_iter=len(tw_start)
+
         elif j==1:
             ctitle= "Depth (km)"
             subreg=ref_eq_df[(ref_eq_df.longitude >= region[0]) & 
@@ -1458,7 +1471,7 @@ def plot_plan_maps(cbase_fault=None,
 def assign_base_fault_barriers():
 
     global barrier_gdf
-    #global bf_names, gls
+    global bf_names, gls
 
     barrier_files=glob.glob(os.path.join(home,"GMTdata","*.brr"))
 
@@ -1482,6 +1495,7 @@ def assign_base_fault_barriers():
 
     brr_df=pd.DataFrame({"barrier":tbr_name,"lon":tbr_lon,"lat":tbr_lat})
 
+    
     barrier_gdf = gpd.GeoDataFrame(brr_df, 
           geometry=gpd.points_from_xy(brr_df.lon, brr_df.lat), 
           crs="EPSG:4326")
@@ -1498,6 +1512,7 @@ def assign_base_fault_barriers():
         tflon+=cbase_fault.lon
         tflat+=cbase_fault.lat
         tbf+=[cbase_fault.name] * len(cbase_fault.lon)
+        
 
     common_crs = 'ESRI:102022'
         
@@ -1507,19 +1522,21 @@ def assign_base_fault_barriers():
           geometry=gpd.points_from_xy(tdf.lon, tdf.lat), crs="EPSG:4326")
     gdf = gdf.to_crs(common_crs)
 
-    gls = gpd.GeoSeries(
-          gdf.groupby("profile").apply(
-          lambda d: shapely.geometry.LineString(d["geometry"].values)))
+    
+    gls = gpd.GeoSeries(gdf.groupby("profile").
+            apply(lambda d: shapely.geometry.LineString(d["geometry"].values),
+                include_groups=False)
+            )
 
     barrier_gdf = barrier_gdf.to_crs(common_crs)
 
     bf_names=gls.axes[0]
  
-    for i in range(len(gls)):
-        cgls=gls[i]
+    for i, cgls in enumerate(gls):
         barrier_gdf['distance_km'] = barrier_gdf.distance(cgls) / 1000
         brr_name_list = sorted(set(barrier_gdf[barrier_gdf["distance_km"]<1].barrier))
-        #print (brr_name_list)
+        #print (brr_name_list) 
+        
         brr_list=[]
         for tb in brr_name_list:
             brr_list.append(barrier(tb) )
@@ -1536,6 +1553,7 @@ def assign_base_fault_barriers():
 def assign_surface_ruptures():
 
     global surface_rupture_gdf
+    
 
     surface_rupture_files=glob.glob(os.path.join(home,"GMTdata","*.lln"))
 
@@ -1620,17 +1638,18 @@ def assign_surface_ruptures():
     gdf = gpd.GeoDataFrame(tdf, 
           geometry=gpd.points_from_xy(tdf.lon, tdf.lat), crs="EPSG:4326")
     gdf = gdf.to_crs(common_crs)
-
-    gls = gpd.GeoSeries(
-          gdf.groupby("event").apply(
-          lambda d: shapely.geometry.LineString(d["geometry"].values)))
+ 
+    gls = gpd.GeoSeries(gdf.groupby("event").apply
+            (lambda d: shapely.geometry.LineString(d["geometry"].values),
+                include_groups=False)
+            )
 
     surface_rupture_gdf = surface_rupture_gdf.to_crs(common_crs)
 
     sf_names=gls.axes[0]
  
-    for i in range(len(gls)):
-        cgls=gls[i]
+
+    for i,cgls in enumerate(gls):
         surface_rupture_gdf['distance_km'] = surface_rupture_gdf.distance(cgls) / 1000
         srr_name_list = sorted(set(surface_rupture_gdf[surface_rupture_gdf["distance_km"]<1].surface_rupture))
         srr_list=[]
@@ -1827,6 +1846,7 @@ def gen_final_eq_df():
 
     del globals()['usgs_irsc_df']
 
+
 #####################################################################
  
 def read_historical_events():
@@ -1978,9 +1998,8 @@ def get_base_faults():
 
     if small_set:
         base_params=[
-                ['Ipak.kml',            20,20, 275, ir_inset_region,'IR'],
-                ['Shahrud.kml',         20,20,  75, ir_inset_region,'IR'],
-                ['Tehran.kml',          20,20, 320, ir_inset_region,'IR'],
+                ['Damavand.kml',        20,20,  85, ir_inset_region,'IR'],
+                ['Van_Tabriz.kml',      20,20, 320, ir_inset_region,'IR'],
                     ]
 
 
@@ -2021,16 +2040,22 @@ if __name__ == "__main__":
     small_set = False
     plot_background = True
     use_local_grid = True
-
     file_paths()
     read_historical_events()
     get_base_faults()
     assign_base_fault_barriers()
+
+
+
     along_profile_barrier_length()
+    
     assign_surface_ruptures()
+    
     along_profile_surface_rupture_length()
+    
     read_usgs (usgs_file = usgs_db_file)
     record_last_events(firstTry=True)
+    
 
     while True:
         time.sleep(sleep_seconds)
@@ -2052,4 +2077,5 @@ if __name__ == "__main__":
         plot_monitor_maps ()
             
         record_last_events(firstTry=False)
-        print(40*"=", datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        print(40*"=", datetime.datetime.now().isoformat ())
+
